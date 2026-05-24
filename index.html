@@ -40,7 +40,8 @@
   </div>
   <ul class="nav-links">
     <li><a href="#features">Возможности</a></li>
-    <li><a href="#how">Как работает</a></li>
+    <li><a href="#gallery">Интерфейс</a></li>
+    <li><a href="#game">Игра</a></li>
     <li><a href="#pricing">Тарифы</a></li>
     <li><a href="#faq">FAQ</a></li>
   </ul>
@@ -333,6 +334,104 @@
   </div>
 </section>
 
+<!-- ============ Gallery / Скриншоты ============ -->
+<section id="gallery" class="gallery">
+  <div class="section-head">
+    <span class="kicker">Интерфейс</span>
+    <h2>Так выглядит ТУЛЗА изнутри</h2>
+    <p>Три экрана, в которых всё устроено просто и понятно — никаких лишних кнопок.</p>
+  </div>
+
+  <div class="gallery-grid">
+
+    <!-- Screen 1: Аналитика -->
+    <figure class="screen-card">
+      <div class="screen-photo" style="--bg-img: url('https://picsum.photos/seed/forest-moss/800/520?grayscale&blur=2')"></div>
+      <div class="screen-window">
+        <div class="sw-bar"><span></span><span></span><span></span><em>analytics.тулза</em></div>
+        <div class="sw-body">
+          <div class="sw-stat-row">
+            <div class="sw-stat">
+              <div class="sw-stat-label">Комментариев сегодня</div>
+              <div class="sw-stat-value">12 480</div>
+              <div class="sw-trend up">+18%</div>
+            </div>
+            <div class="sw-stat">
+              <div class="sw-stat-label">Дошли в личку</div>
+              <div class="sw-stat-value">98<small>%</small></div>
+              <div class="sw-trend up">+2%</div>
+            </div>
+          </div>
+          <svg viewBox="0 0 320 110" class="sw-chart">
+            <defs>
+              <linearGradient id="chartG1" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#9bd17a" stop-opacity=".5"/>
+                <stop offset="100%" stop-color="#9bd17a" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path d="M0,80 L30,72 60,78 90,60 120,68 150,50 180,55 210,38 240,44 270,28 300,32 320,18 L320,110 L0,110 Z" fill="url(#chartG1)"/>
+            <path d="M0,80 L30,72 60,78 90,60 120,68 150,50 180,55 210,38 240,44 270,28 300,32 320,18" stroke="#9bd17a" stroke-width="2" fill="none"/>
+            <g fill="#c8ec9c">
+              <circle cx="90" cy="60" r="3"/>
+              <circle cx="180" cy="55" r="3"/>
+              <circle cx="270" cy="28" r="3"/>
+              <circle cx="320" cy="18" r="3.5"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <figcaption>Аналитика в реальном времени</figcaption>
+    </figure>
+
+    <!-- Screen 2: Сообщения -->
+    <figure class="screen-card featured">
+      <div class="screen-photo" style="--bg-img: url('https://picsum.photos/seed/fern-leaves/800/520?grayscale&blur=2')"></div>
+      <div class="screen-window">
+        <div class="sw-bar"><span></span><span></span><span></span><em>messages.тулза</em></div>
+        <div class="sw-body">
+          <div class="sw-msg me">
+            <div class="sw-ava" style="background-image: url('https://api.dicebear.com/7.x/personas/svg?seed=Anya&backgroundColor=4a7c3a')"></div>
+            <div class="sw-bubble">Привет, Анна! Видела ваш пост о йоге — у нас как раз набор в студию у метро</div>
+          </div>
+          <div class="sw-msg them">
+            <div class="sw-ava" style="background-image: url('https://api.dicebear.com/7.x/personas/svg?seed=Maria&backgroundColor=7ab056')"></div>
+            <div class="sw-bubble">Ого, спасибо! А расписание есть?</div>
+          </div>
+          <div class="sw-msg me typing">
+            <div class="sw-ava" style="background-image: url('https://api.dicebear.com/7.x/personas/svg?seed=Anya&backgroundColor=4a7c3a')"></div>
+            <div class="sw-bubble"><span class="dot1"></span><span class="dot2"></span><span class="dot3"></span></div>
+          </div>
+        </div>
+      </div>
+      <figcaption>Живые диалоги, не шаблоны</figcaption>
+    </figure>
+
+    <!-- Screen 3: Парсер -->
+    <figure class="screen-card">
+      <div class="screen-photo" style="--bg-img: url('https://picsum.photos/seed/forest-trees/800/520?grayscale&blur=2')"></div>
+      <div class="screen-window">
+        <div class="sw-bar"><span></span><span></span><span></span><em>парсер.тулза</em></div>
+        <div class="sw-body">
+          <div class="sw-input">
+            <span class="sw-prefix">vk.com/</span>
+            <span class="sw-typed">club_yoga_spb</span>
+            <span class="sw-cursor"></span>
+          </div>
+          <div class="sw-result">
+            <div class="sw-row"><span class="sw-ava-mini" style="background-image: url('https://api.dicebear.com/7.x/personas/svg?seed=u1')"></span> Анна Громова <em>· СПб · 28 лет</em></div>
+            <div class="sw-row"><span class="sw-ava-mini" style="background-image: url('https://api.dicebear.com/7.x/personas/svg?seed=u2')"></span> Дарья Колесникова <em>· СПб · 31 год</em></div>
+            <div class="sw-row"><span class="sw-ava-mini" style="background-image: url('https://api.dicebear.com/7.x/personas/svg?seed=u3')"></span> Ольга Семёнова <em>· СПб · 26 лет</em></div>
+            <div class="sw-row"><span class="sw-ava-mini" style="background-image: url('https://api.dicebear.com/7.x/personas/svg?seed=u4')"></span> Полина Тарасова <em>· СПб · 34 года</em></div>
+            <div class="sw-found">найдено <strong>4 218</strong> пользователей</div>
+          </div>
+        </div>
+      </div>
+      <figcaption>Парсер аудитории по любым критериям</figcaption>
+    </figure>
+
+  </div>
+</section>
+
 <!-- ============ How it works ============ -->
 <section id="how" class="how">
   <div class="section-head">
@@ -414,6 +513,78 @@
   </div>
 </section>
 
+<!-- ============ ИГРА: Тулза-кликер ============ -->
+<section id="game" class="game-section">
+  <div class="section-head">
+    <span class="kicker">Мини-игра</span>
+    <h2>Поймай комментарий</h2>
+    <p>За 30 секунд успей кликнуть как можно больше «лайков», «комментов» и «писем». Только не задень <span style="color:#ff8068;">забаны</span> — за них штраф.</p>
+  </div>
+
+  <div class="game-wrap">
+    <div class="game-hud">
+      <div class="hud-block">
+        <div class="hud-label">Счёт</div>
+        <div class="hud-value" id="g-score">0</div>
+      </div>
+      <div class="hud-block">
+        <div class="hud-label">Комбо</div>
+        <div class="hud-value combo" id="g-combo">×1</div>
+      </div>
+      <div class="hud-block">
+        <div class="hud-label">Время</div>
+        <div class="hud-value" id="g-time">30</div>
+      </div>
+      <div class="hud-block">
+        <div class="hud-label">Рекорд</div>
+        <div class="hud-value" id="g-best">0</div>
+      </div>
+    </div>
+
+    <div class="game-stage" id="g-stage">
+      <canvas id="g-canvas" width="900" height="500"></canvas>
+
+      <!-- Декоративный мох по бокам стейджа -->
+      <svg viewBox="0 0 900 500" class="game-decor" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="gFloor" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#3a5e2a" stop-opacity="0"/>
+            <stop offset="100%" stop-color="#1a2e1f" stop-opacity="0.85"/>
+          </linearGradient>
+        </defs>
+        <rect x="0" y="430" width="900" height="70" fill="url(#gFloor)"/>
+        <g stroke="#7ab056" stroke-width="1.4" stroke-linecap="round" fill="none" opacity=".8">
+          <path d="M30,490 Q32,460 30,430"/><path d="M80,490 Q82,465 81,440"/>
+          <path d="M150,490 Q152,455 150,425"/><path d="M210,490 Q212,470 211,442"/>
+          <path d="M270,490 Q272,460 270,430"/><path d="M340,490 Q342,465 341,440"/>
+          <path d="M410,490 Q412,450 410,418"/><path d="M470,490 Q472,468 471,438"/>
+          <path d="M550,490 Q552,455 550,425"/><path d="M620,490 Q622,470 621,442"/>
+          <path d="M690,490 Q692,460 690,430"/><path d="M760,490 Q762,465 761,440"/>
+          <path d="M820,490 Q822,455 820,425"/><path d="M870,490 Q872,468 871,440"/>
+        </g>
+      </svg>
+
+      <div class="game-overlay" id="g-overlay">
+        <div class="overlay-inner">
+          <h3 id="g-title">Готовы запустить ТУЛЗУ?</h3>
+          <p id="g-desc">Кликайте по падающим иконкам ВКонтакте.<br>♥ +10 · 💬 +15 · ✉ +25 · 🚫 −20</p>
+          <button class="btn btn-primary" id="g-start">
+            <span>Начать игру</span>
+            <svg viewBox="0 0 24 24" width="18" height="18"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="game-legend">
+      <span class="leg-item"><span class="leg-icon heart">♥</span> Лайк <em>+10</em></span>
+      <span class="leg-item"><span class="leg-icon msg">💬</span> Коммент <em>+15</em></span>
+      <span class="leg-item"><span class="leg-icon mail">✉</span> Письмо <em>+25</em></span>
+      <span class="leg-item"><span class="leg-icon ban">🚫</span> Бан <em>−20</em></span>
+    </div>
+  </div>
+</section>
+
 <!-- ============ Pricing ============ -->
 <section id="pricing" class="pricing">
   <div class="section-head">
@@ -492,6 +663,56 @@
       <summary>Что если мне нужно больше, чем в «Лесу»?</summary>
       <p>Напишите нам — соберём индивидуальный тариф с выделенными мощностями и SLA.</p>
     </details>
+  </div>
+</section>
+
+<!-- ============ Отзывы ============ -->
+<section id="testimonials" class="testimonials">
+  <div class="t-bg" style="background-image: url('https://picsum.photos/seed/deep-forest/1800/900?blur=4');"></div>
+  <div class="section-head">
+    <span class="kicker">Отзывы</span>
+    <h2>Чем нам помогли клиенты прорасти</h2>
+  </div>
+
+  <div class="t-grid">
+    <figure class="t-card">
+      <div class="t-quote">
+        За месяц ТУЛЗА принесла нам <strong>340 заявок</strong> в студию йоги — органически, без рекламы. Ощущение, будто наняли отдел из 5 человек.
+      </div>
+      <figcaption>
+        <img src="https://api.dicebear.com/7.x/personas/svg?seed=Anastasiya&backgroundColor=4a7c3a" alt="" class="t-ava"/>
+        <div>
+          <div class="t-name">Анастасия Линд</div>
+          <div class="t-role">основатель Yoga.Loft, СПб</div>
+        </div>
+      </figcaption>
+    </figure>
+
+    <figure class="t-card">
+      <div class="t-quote">
+        Раньше делали рассылки вручную — выгорал менеджер. Сейчас всё работает само, а конверсия <strong>выросла в 2,3 раза</strong>.
+      </div>
+      <figcaption>
+        <img src="https://api.dicebear.com/7.x/personas/svg?seed=Mikhail&backgroundColor=2a4a22" alt="" class="t-ava"/>
+        <div>
+          <div class="t-name">Михаил Прохоров</div>
+          <div class="t-role">маркетинг, EcoBox</div>
+        </div>
+      </figcaption>
+    </figure>
+
+    <figure class="t-card">
+      <div class="t-quote">
+        Понравилось, что комментарии действительно <strong>выглядят живыми</strong>. Никто из подписчиков не заподозрил, что это автоматика.
+      </div>
+      <figcaption>
+        <img src="https://api.dicebear.com/7.x/personas/svg?seed=Elena&backgroundColor=7ab056" alt="" class="t-ava"/>
+        <div>
+          <div class="t-name">Елена Тиханова</div>
+          <div class="t-role">SMM-агентство «Корни»</div>
+        </div>
+      </figcaption>
+    </figure>
   </div>
 </section>
 

@@ -196,3 +196,298 @@ document.querySelectorAll('.btn-primary').forEach(btn => {
     );
   });
 })();
+
+/* ===================================================================
+   11. ИГРА: «Поймай комментарий»
+   Тулза-кликер — падающие иконки ВК. Кликай хорошие, не задевай баны.
+=================================================================== */
+(function tulzaGame() {
+  const canvas = document.getElementById('g-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const stage = document.getElementById('g-stage');
+  const overlay = document.getElementById('g-overlay');
+  const titleEl = document.getElementById('g-title');
+  const descEl = document.getElementById('g-desc');
+  const startBtn = document.getElementById('g-start');
+  const scoreEl = document.getElementById('g-score');
+  const comboEl = document.getElementById('g-combo');
+  const timeEl = document.getElementById('g-time');
+  const bestEl = document.getElementById('g-best');
+
+  const W = canvas.width, H = canvas.height;
+
+  // Поддержка high-DPI: масштабируем при необходимости
+  function fitCanvas() {
+    const rect = stage.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width  = Math.round(rect.width  * dpr);
+    canvas.height = Math.round(rect.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  fitCanvas();
+  window.addEventListener('resize', fitCanvas);
+
+  // Типы целей (с весами для генерации)
+  const TYPES = [
+    { kind: 'heart', emoji: '♥', color: '#ff6b85', value: 10, weight: 5, size: 38 },
+    { kind: 'msg',   emoji: '💬', color: '#9bd17a', value: 15, weight: 4, size: 40 },
+    { kind: 'mail',  emoji: '✉',  color: '#c8ec9c', value: 25, weight: 2, size: 42 },
+    { kind: 'ban',   emoji: '🚫', color: '#ff8068', value: -20, weight: 2, size: 42, bad: true },
+  ];
+  const TOTAL_WEIGHT = TYPES.reduce((s, t) => s + t.weight, 0);
+
+  function pickType() {
+    let r = Math.random() * TOTAL_WEIGHT;
+    for (const t of TYPES) { if ((r -= t.weight) <= 0) return t; }
+    return TYPES[0];
+  }
+
+  let entities = [];
+  let particles = [];
+  let score = 0;
+  let combo = 1;
+  let comboStreak = 0;
+  let timeLeft = 30;
+  let lastSpawn = 0;
+  let spawnInterval = 700;
+  let running = false;
+  let last = 0;
+  let timerHandle = null;
+
+  let best = parseInt(localStorage.getItem('tulza_best') || '0', 10);
+  bestEl.textContent = best;
+
+  function spawn() {
+    const type = pickType();
+    const cssW = canvas.clientWidth || W;
+    const cssH = canvas.clientHeight || H;
+    entities.push({
+      type,
+      x: 40 + Math.random() * (cssW - 80),
+      y: -40,
+      vx: (Math.random() - 0.5) * 60,
+      vy: 90 + Math.random() * 90,
+      rot: (Math.random() - 0.5) * 0.4,
+      vrot: (Math.random() - 0.5) * 1.2,
+      r: type.size / 2,
+      alive: true,
+      born: performance.now(),
+    });
+  }
+
+  function addParticles(x, y, color, count = 12) {
+    for (let i = 0; i < count; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const s = 80 + Math.random() * 180;
+      particles.push({
+        x, y,
+        vx: Math.cos(a) * s,
+        vy: Math.sin(a) * s,
+        life: 0.6 + Math.random() * 0.4,
+        age: 0,
+        color,
+        size: 2 + Math.random() * 3,
+      });
+    }
+  }
+
+  function showPop(x, y, text, isMinus) {
+    const el = document.createElement('div');
+    el.className = 'score-pop' + (isMinus ? ' minus' : '');
+    el.textContent = text;
+    // координаты в css-пикселях относительно stage
+    const rect = stage.getBoundingClientRect();
+    const scale = rect.width / (canvas.clientWidth || W);
+    el.style.left = (x * scale) + 'px';
+    el.style.top  = (y * scale) + 'px';
+    stage.appendChild(el);
+    setTimeout(() => el.remove(), 900);
+  }
+
+  function drawEntity(e) {
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.rotate(e.rot);
+    // glow
+    ctx.shadowColor = e.type.color;
+    ctx.shadowBlur = 22;
+    // фон-кружок
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, e.r * 1.4);
+    grad.addColorStop(0, e.type.color + 'cc');
+    grad.addColorStop(1, e.type.color + '00');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, e.r * 1.4, 0, Math.PI * 2);
+    ctx.fill();
+    // emoji
+    ctx.shadowBlur = 6;
+    ctx.font = `${e.type.size}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff';
+    ctx.fillText(e.type.emoji, 0, 2);
+    ctx.restore();
+  }
+
+  function drawParticle(p) {
+    const a = 1 - (p.age / p.life);
+    ctx.globalAlpha = a;
+    ctx.fillStyle = p.color;
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+  }
+
+  function loop(now) {
+    if (!running) return;
+    const dt = Math.min(0.06, (now - last) / 1000);
+    last = now;
+
+    const cssW = canvas.clientWidth || W;
+    const cssH = canvas.clientHeight || H;
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    // Spawn
+    if (now - lastSpawn > spawnInterval) {
+      spawn();
+      lastSpawn = now;
+      spawnInterval = Math.max(280, 700 - (30 - timeLeft) * 14);
+    }
+
+    // Entities
+    for (const e of entities) {
+      if (!e.alive) continue;
+      e.x += e.vx * dt;
+      e.y += e.vy * dt;
+      e.rot += e.vrot * dt;
+      // bounce off side walls
+      if (e.x < e.r) { e.x = e.r; e.vx *= -1; }
+      if (e.x > cssW - e.r) { e.x = cssW - e.r; e.vx *= -1; }
+      // упал — пропускаем
+      if (e.y > cssH + 60) {
+        e.alive = false;
+        if (!e.type.bad) {
+          combo = 1;
+          comboStreak = 0;
+          comboEl.textContent = '×1';
+        }
+      } else {
+        drawEntity(e);
+      }
+    }
+    entities = entities.filter(e => e.alive);
+
+    // Particles
+    for (const p of particles) {
+      p.age += dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 220 * dt; // gravity
+      drawParticle(p);
+    }
+    particles = particles.filter(p => p.age < p.life);
+
+    requestAnimationFrame(loop);
+  }
+
+  function endGame() {
+    running = false;
+    clearInterval(timerHandle);
+    overlay.classList.remove('hidden');
+    titleEl.textContent = 'Время вышло';
+    descEl.innerHTML = `Ваш результат: <strong style="color:var(--moss-lt);">${score}</strong> очков<br>${score > best ? '🌿 Новый рекорд!' : `Рекорд: ${best}`}`;
+    startBtn.querySelector('span').textContent = 'Сыграть ещё';
+
+    if (score > best) {
+      best = score;
+      localStorage.setItem('tulza_best', String(best));
+      bestEl.textContent = best;
+    }
+  }
+
+  function startGame() {
+    score = 0;
+    combo = 1;
+    comboStreak = 0;
+    timeLeft = 30;
+    entities = [];
+    particles = [];
+    lastSpawn = 0;
+    spawnInterval = 700;
+    scoreEl.textContent = '0';
+    comboEl.textContent = '×1';
+    timeEl.textContent = '30';
+    overlay.classList.add('hidden');
+    running = true;
+    last = performance.now();
+    requestAnimationFrame((t) => { last = t; loop(t); });
+
+    clearInterval(timerHandle);
+    timerHandle = setInterval(() => {
+      timeLeft -= 1;
+      timeEl.textContent = timeLeft;
+      if (timeLeft <= 0) endGame();
+    }, 1000);
+  }
+
+  // Клик/тач по канвасу
+  function handleHit(clientX, clientY) {
+    if (!running) return;
+    const rect = canvas.getBoundingClientRect();
+    const scale = (canvas.clientWidth || W) / rect.width;
+    const x = (clientX - rect.left) * scale;
+    const y = (clientY - rect.top)  * scale;
+
+    // ищем ближайшую цель в радиусе
+    let best = null, bestDist = Infinity;
+    for (const e of entities) {
+      if (!e.alive) continue;
+      const dx = e.x - x, dy = e.y - y;
+      const d2 = dx*dx + dy*dy;
+      const hitR = e.r * 1.5;
+      if (d2 < hitR * hitR && d2 < bestDist) {
+        best = e;
+        bestDist = d2;
+      }
+    }
+    if (!best) {
+      // мисклик — мягкий штраф к комбо
+      combo = 1;
+      comboStreak = 0;
+      comboEl.textContent = '×1';
+      return;
+    }
+
+    best.alive = false;
+    addParticles(best.x, best.y, best.type.color, best.type.bad ? 16 : 12);
+
+    if (best.type.bad) {
+      score = Math.max(0, score + best.type.value);
+      combo = 1;
+      comboStreak = 0;
+      comboEl.textContent = '×1';
+      showPop(best.x, best.y, `${best.type.value}`, true);
+    } else {
+      comboStreak += 1;
+      if (comboStreak % 3 === 0) {
+        combo = Math.min(5, combo + 1);
+        comboEl.textContent = '×' + combo;
+        comboEl.classList.add('flash');
+        setTimeout(() => comboEl.classList.remove('flash'), 220);
+      }
+      const gain = best.type.value * combo;
+      score += gain;
+      showPop(best.x, best.y, `+${gain}`, false);
+    }
+    scoreEl.textContent = score;
+  }
+
+  canvas.addEventListener('pointerdown', (e) => handleHit(e.clientX, e.clientY));
+
+  startBtn.addEventListener('click', startGame);
+})();
