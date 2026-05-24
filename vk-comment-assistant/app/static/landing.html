@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>VK Comment Assistant — Автоматизация ВКонтакте</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#06080E;--bg2:#0A0E1A;--surface:rgba(255,255,255,.04);
+  --glass:rgba(12,16,28,.65);--border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);
+  --text:#EFF3FF;--text2:#7A86A6;--text3:#4C5672;
+  --blue:#5B9CF5;--blue-d:#3070E0;--violet:#9F7AEA;--violet-d:#7C3AED;
+  --teal:#2DD4BF;--amber:#FBBF24;--rose:#FB7185;
+  --glow:rgba(91,156,245,.4);--glow-v:rgba(159,122,234,.35);
+}
+html{scroll-behavior:smooth}
+body{font-family:"Outfit",sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-font-smoothing:antialiased;cursor:default}
+::selection{background:rgba(91,156,245,.3);color:#fff}
+
+/* ── PRELOADER ── */
+.preloader{position:fixed;inset:0;z-index:99999;background:#06080E;display:flex;align-items:center;justify-content:center;
+  transition:opacity .5s ease,visibility .5s ease}
+.preloader.done{opacity:0;visibility:hidden;pointer-events:none}
+.pre-scene{position:relative;width:400px;display:flex;flex-direction:column;align-items:center}
+.pre-post{width:100%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:20px;
+  opacity:0;transform:translateY(20px) scale(.96);animation:prePostIn .5s .2s ease forwards}
+@keyframes prePostIn{to{opacity:1;transform:translateY(0) scale(1)}}
+.pre-post-head{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.pre-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#5B9CF5,#9F7AEA)}
+.pre-name{font-family:"Unbounded";font-size:.78rem;font-weight:700;color:#EFF3FF}
+.pre-time{font-size:.68rem;color:#4C5672;margin-top:1px}
+.pre-post-text{font-size:.88rem;color:#7A86A6;line-height:1.55;margin-bottom:18px}
+.pre-comment-row{display:flex;align-items:flex-start;gap:8px;opacity:0;animation:preCommentIn .4s .9s ease forwards}
+@keyframes preCommentIn{to{opacity:1}}
+.pre-comment-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#2DD4BF,#5B9CF5);flex-shrink:0;margin-top:2px}
+.pre-comment-bubble{background:rgba(91,156,245,.12);border:1px solid rgba(91,156,245,.2);border-radius:12px 12px 12px 4px;
+  padding:10px 14px;font-size:.84rem;color:#EFF3FF;min-height:38px;display:flex;align-items:center}
+.pre-typing{font-size:.84rem}
+.pre-cursor{color:#5B9CF5;animation:blink .5s step-end infinite;margin-left:1px}
+@keyframes blink{50%{opacity:0}}
+
+/* Notifications */
+.pre-notifs{position:absolute;top:50%;left:50%;width:0;height:0;pointer-events:none}
+.pre-notif{position:absolute;white-space:nowrap;
+  background:rgba(91,156,245,.15);backdrop-filter:blur(8px);
+  border:1px solid rgba(91,156,245,.25);border-radius:12px;
+  padding:8px 14px;font-size:.76rem;font-weight:500;color:#EFF3FF;
+  display:flex;align-items:center;gap:6px;
+  opacity:0;transform:translate(-50%,-50%) scale(.5);
+  box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.pre-notif svg{flex-shrink:0}
+.pre-notif.fly{animation:notifFly 1.2s cubic-bezier(.16,1,.3,1) forwards}
+@keyframes notifFly{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}
+  20%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100%{opacity:0}
+}
+@keyframes notifFlyTo{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}
+  15%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}
+  100%{opacity:0;transform:translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(.6)}
+}
+.pre-notif.green{background:rgba(45,212,191,.15);border-color:rgba(45,212,191,.25)}
+.pre-notif.violet{background:rgba(159,122,234,.15);border-color:rgba(159,122,234,.25)}
+.pre-notif.amber{background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.2)}
+
+/* Logo */
+.pre-logo{opacity:0;margin-top:32px;transform:scale(.8);transition:opacity .4s ease,transform .4s ease}
+.pre-logo.show{opacity:1;transform:scale(1)}
+.pre-logo-mark{width:52px;height:52px;border-radius:50%;
+  background:linear-gradient(135deg,#5B9CF5,#9F7AEA);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 40px rgba(91,156,245,.5)}
+
+/* ── CURSOR GLOW ── */
+.cursor-glow{position:fixed;width:600px;height:600px;border-radius:50%;pointer-events:none;z-index:0;
+  background:radial-gradient(circle,rgba(91,156,245,.07) 0%,rgba(159,122,234,.04) 30%,transparent 70%);
+  transform:translate(-50%,-50%);transition:left .15s ease-out,top .15s ease-out;will-change:left,top}
+
+/* ── GRAIN ── */
+body::after{content:"";position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:.35;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='.04'/%3E%3C/svg%3E")}
+
+/* ── MESH BG ── */
+.mesh{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.mesh-blob{position:absolute;border-radius:50%;filter:blur(140px);opacity:.6;animation:meshFloat 25s ease-in-out infinite}
+.mesh-blob:nth-child(1){width:50vw;height:50vw;top:-15vw;left:-10vw;background:rgba(91,156,245,.12);animation-duration:30s}
+.mesh-blob:nth-child(2){width:40vw;height:40vw;top:10vh;right:-12vw;background:rgba(159,122,234,.10);animation-delay:-10s}
+.mesh-blob:nth-child(3){width:35vw;height:35vw;bottom:10vh;left:20vw;background:rgba(45,212,191,.06);animation-delay:-18s;animation-duration:35s}
+.mesh-blob:nth-child(4){width:30vw;height:30vw;top:50%;right:25%;background:rgba(251,113,133,.05);animation-delay:-7s;animation-duration:28s}
+@keyframes meshFloat{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(30px,-40px) scale(1.08)}66%{transform:translate(-20px,30px) scale(.94)}}
+
+/* ── DOT GRID ── */
+.dot-grid{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background-image:radial-gradient(rgba(91,156,245,.12) 1px,transparent 1px);
+  background-size:32px 32px;mask-image:radial-gradient(ellipse 70% 60% at 50% 40%,black 30%,transparent 100%)}
+
+/* ── NAV ── */
+nav{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:100;
+  width:min(calc(100% - 32px),900px);height:56px;
+  display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 20px;
+  background:var(--glass);backdrop-filter:blur(24px) saturate(1.4);
+  border:1px solid var(--border2);border-radius:100px;
+  box-shadow:0 4px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.04)}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text);font-family:"Unbounded";font-weight:700;font-size:.82rem;letter-spacing:-.02em}
+.nav-mark{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--violet));
+  display:flex;align-items:center;justify-content:center;box-shadow:0 0 16px var(--glow)}
+.nav-mark svg{width:13px;height:13px}
+.nav-right{display:flex;align-items:center;gap:6px}
+.nav-link{color:var(--text2);font-size:.82rem;font-weight:500;text-decoration:none;padding:6px 14px;border-radius:100px;transition:.2s}
+.nav-link:hover{color:var(--text);background:rgba(255,255,255,.06)}
+.nav-cta{position:relative;padding:8px 20px;border-radius:100px;border:none;
+  background:linear-gradient(135deg,var(--blue),var(--violet));color:#fff;
+  font-family:"Outfit";font-size:.82rem;font-weight:600;cursor:pointer;text-decoration:none;
+  overflow:hidden;transition:.2s;box-shadow:0 4px 16px rgba(91,156,245,.35)}
+.nav-cta:hover{box-shadow:0 8px 28px rgba(91,156,245,.5);transform:translateY(-1px)}
+/* beam sweep */
+.nav-cta::after{content:"";position:absolute;top:0;left:-100%;width:60%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);
+  animation:beamSweep 3s ease-in-out infinite}
+@keyframes beamSweep{0%,100%{left:-100%}50%{left:150%}}
+
+/* ── HERO ── */
+.hero{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;text-align:center;
+  padding:140px 24px 60px;overflow:hidden}
+.hero h1{font-family:"Unbounded";font-size:clamp(2.2rem,5.8vw,4.8rem);font-weight:900;line-height:1.05;letter-spacing:-.04em;
+  max-width:820px;animation:heroIn .9s cubic-bezier(.16,1,.3,1) both}
+.grad{background:linear-gradient(135deg,var(--blue) 10%,var(--violet) 50%,var(--teal) 90%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  background-size:200% 200%;animation:gradShift 6s ease infinite}
+@keyframes gradShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.hero-sub{font-size:clamp(.95rem,1.8vw,1.15rem);color:var(--text2);line-height:1.75;max-width:520px;
+  margin:24px auto 36px;font-weight:300;animation:heroIn .9s .12s cubic-bezier(.16,1,.3,1) both}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;animation:heroIn .9s .2s cubic-bezier(.16,1,.3,1) both}
+@keyframes heroIn{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:translateY(0)}}
+
+.btn-primary-lg{position:relative;display:inline-flex;align-items:center;gap:10px;padding:14px 30px;border-radius:14px;border:none;
+  background:linear-gradient(135deg,var(--blue),var(--violet-d));color:#fff;font-family:"Outfit";font-size:.95rem;font-weight:600;
+  cursor:pointer;text-decoration:none;overflow:hidden;transition:.25s;
+  box-shadow:0 8px 32px rgba(91,156,245,.4),0 0 0 1px rgba(255,255,255,.08) inset}
+.btn-primary-lg:hover{transform:translateY(-2px);box-shadow:0 14px 44px rgba(91,156,245,.55)}
+.btn-primary-lg::after{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.12) 0%,transparent 50%);pointer-events:none}
+.btn-secondary-lg{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:14px;
+  border:1px solid var(--border2);background:var(--glass);backdrop-filter:blur(10px);
+  color:var(--text2);font-family:"Outfit";font-size:.95rem;font-weight:500;cursor:pointer;text-decoration:none;transition:.2s}
+.btn-secondary-lg:hover{border-color:rgba(255,255,255,.2);color:var(--text);background:rgba(255,255,255,.06)}
+
+/* ── HERO MOCKUP ── */
+.hero-mockup-wrap{width:100%;max-width:960px;margin:64px auto 0;perspective:1200px;animation:heroIn .9s .3s cubic-bezier(.16,1,.3,1) both}
+.hero-mockup{border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.1);
+  background:var(--bg2);box-shadow:0 40px 100px -20px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.05),0 0 80px rgba(91,156,245,.1);
+  transform:rotateX(4deg);transition:transform .5s ease,box-shadow .5s ease}
+.hero-mockup:hover{transform:rotateX(0deg);box-shadow:0 50px 120px -20px rgba(0,0,0,.6),0 0 0 1px rgba(91,156,245,.15),0 0 100px rgba(91,156,245,.15)}
+.mockup-bar{background:rgba(255,255,255,.04);padding:12px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.06)}
+.mc{width:10px;height:10px;border-radius:50%}
+.mc-r{background:#FF5F57}.mc-y{background:#FEBD2F}.mc-g{background:#28C840}
+.mockup-url{flex:1;margin:0 12px;background:rgba(255,255,255,.05);border-radius:6px;padding:4px 12px;
+  font-size:.72rem;color:var(--text3);font-family:monospace;letter-spacing:.02em}
+.hero-mockup img{display:block;width:100%}
+
+/* ── MARQUEE ── */
+.marquee-section{position:relative;z-index:1;overflow:hidden;padding:40px 0;
+  border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.marquee-track{display:flex;gap:40px;animation:marqueeScroll 30s linear infinite;white-space:nowrap;width:max-content}
+.marquee-item{display:flex;align-items:center;gap:8px;color:var(--text3);font-size:.85rem;font-weight:500;letter-spacing:.02em}
+.marquee-dot{width:5px;height:5px;border-radius:50%;background:var(--blue);opacity:.5}
+@keyframes marqueeScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+/* ── FEATURES ── */
+.features{position:relative;z-index:1;padding:140px 24px 100px}
+.section-label{font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);margin-bottom:14px;
+  display:flex;align-items:center;gap:8px}
+.section-label::before{content:"";width:20px;height:1px;background:var(--blue)}
+.section-head{text-align:center;margin-bottom:80px}
+.section-head .section-label{justify-content:center}
+.section-head .section-label::before,.section-head .section-label::after{content:"";width:20px;height:1px;background:var(--blue)}
+.section-title{font-family:"Unbounded";font-size:clamp(1.5rem,3.5vw,2.8rem);font-weight:800;letter-spacing:-.03em;line-height:1.1;margin-bottom:14px}
+.section-sub{font-size:1rem;color:var(--text2);line-height:1.7;font-weight:300;max-width:520px;margin:0 auto}
+
+/* BENTO grid */
+.bento{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(12,1fr);grid-template-rows:auto;gap:16px}
+.bento-card{position:relative;background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--border);
+  border-radius:20px;overflow:hidden;transition:.35s cubic-bezier(.16,1,.3,1);cursor:default}
+.bento-card:hover{border-color:rgba(91,156,245,.25);transform:translateY(-4px);
+  box-shadow:0 24px 64px rgba(0,0,0,.35),0 0 0 1px rgba(91,156,245,.1)}
+.bento-card::after{content:"";position:absolute;inset:0;border-radius:20px;
+  background:linear-gradient(180deg,rgba(91,156,245,.04) 0%,transparent 40%);opacity:0;transition:.3s;pointer-events:none}
+.bento-card:hover::after{opacity:1}
+.bc-1{grid-column:1/8}.bc-2{grid-column:8/13}.bc-3{grid-column:1/6}.bc-4{grid-column:6/13}
+.bc-body{padding:28px 28px 20px;position:relative;z-index:1}
+.bc-num{font-family:"Unbounded";font-size:5rem;font-weight:900;
+  position:absolute;top:16px;right:24px;line-height:1;
+  background:linear-gradient(180deg,rgba(255,255,255,.04) 0%,transparent 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;pointer-events:none}
+.bc-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;margin-bottom:16px}
+.bc-i1{background:rgba(91,156,245,.12);border:1px solid rgba(91,156,245,.2)}
+.bc-i2{background:rgba(159,122,234,.12);border:1px solid rgba(159,122,234,.2)}
+.bc-i3{background:rgba(45,212,191,.12);border:1px solid rgba(45,212,191,.2)}
+.bc-i4{background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.2)}
+.bc-tag{font-size:.65rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.bc-title{font-family:"Unbounded";font-size:1.05rem;font-weight:700;letter-spacing:-.02em;margin-bottom:8px}
+.bc-desc{font-size:.88rem;color:var(--text2);line-height:1.6;font-weight:400;max-width:360px}
+.bc-screenshot{margin:16px 20px 20px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.08);
+  box-shadow:0 8px 32px rgba(0,0,0,.45)}
+.bc-screenshot img{display:block;width:100%;object-fit:cover;object-position:top;max-height:200px}
+.bc-ai-vis{margin:20px;border-radius:14px;padding:36px 24px;text-align:center;
+  background:linear-gradient(135deg,rgba(251,191,36,.06),rgba(159,122,234,.08));border:1px solid rgba(251,191,36,.12);
+  display:flex;flex-direction:column;align-items:center;gap:16px;min-height:140px;justify-content:center}
+.orbs{display:flex;gap:14px}
+.orb{width:44px;height:44px;border-radius:50%;animation:orbFloat 4s ease-in-out infinite}
+.orb:nth-child(1){background:linear-gradient(135deg,var(--amber),var(--rose));animation-delay:0s}
+.orb:nth-child(2){background:linear-gradient(135deg,var(--violet),#EC4899);animation-delay:.6s}
+.orb:nth-child(3){background:linear-gradient(135deg,var(--teal),var(--blue));animation-delay:1.2s}
+@keyframes orbFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-10px) scale(1.12)}}
+.orb-label{font-size:.78rem;color:var(--text3);font-weight:400}
+
+/* ── HOW ── */
+.how{position:relative;z-index:1;padding:120px 24px}
+.how-inner{max-width:880px;margin:0 auto}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:72px}
+.step-card{background:var(--glass);backdrop-filter:blur(10px);border:1px solid var(--border);
+  border-radius:20px;padding:32px 24px;text-align:center;transition:.3s;position:relative}
+.step-card:hover{border-color:rgba(91,156,245,.2);transform:translateY(-3px);box-shadow:0 16px 48px rgba(0,0,0,.3)}
+.step-ring{width:56px;height:56px;border-radius:50%;margin:0 auto 20px;
+  border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;
+  font-family:"Unbounded";font-size:.9rem;font-weight:700;color:var(--blue);transition:.3s}
+.step-card:hover .step-ring{background:linear-gradient(135deg,var(--blue),var(--violet));color:#fff;border-color:transparent;
+  box-shadow:0 0 28px var(--glow)}
+.step-h{font-family:"Unbounded";font-size:.92rem;font-weight:700;margin-bottom:10px;letter-spacing:-.01em}
+.step-p{font-size:.88rem;color:var(--text2);line-height:1.65;font-weight:400}
+
+/* ── PRICING ── */
+.pricing{position:relative;z-index:1;padding:140px 24px}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:960px;margin:0 auto;align-items:start}
+.p-card{background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--border);
+  border-radius:20px;padding:32px;transition:.35s;position:relative;overflow:hidden}
+.p-card:hover{transform:translateY(-4px)}
+.p-card.pop{background:linear-gradient(160deg,rgba(91,156,245,.08),rgba(159,122,234,.06));
+  border-color:rgba(91,156,245,.3);box-shadow:0 0 0 1px rgba(91,156,245,.1),0 24px 64px rgba(91,156,245,.12);
+  transform:scale(1.02)}
+.p-card.pop:hover{transform:scale(1.02) translateY(-4px)}
+.pop-tag{position:absolute;top:0;right:20px;
+  background:linear-gradient(135deg,var(--blue),var(--violet));color:#fff;
+  font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  padding:5px 12px;border-radius:0 0 8px 8px;box-shadow:0 4px 12px rgba(91,156,245,.4)}
+.p-name{font-family:"Unbounded";font-size:.88rem;font-weight:700;margin-bottom:6px}
+.p-desc{font-size:.8rem;color:var(--text2);margin-bottom:24px;line-height:1.5}
+.p-price{font-family:"Unbounded";font-size:2.8rem;font-weight:900;letter-spacing:-.05em;line-height:1}
+.p-price.hi{color:var(--blue)}
+.p-cur{font-size:1rem;font-weight:400}
+.p-period{font-size:.76rem;color:var(--text3);margin:4px 0 24px}
+.p-list{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:28px}
+.p-list li{display:flex;align-items:center;gap:10px;font-size:.86rem;color:var(--text2);line-height:1.3}
+.p-list li::before{content:"";flex-shrink:0;width:16px;height:16px;border-radius:50%;
+  background:rgba(45,212,191,.12);border:1px solid rgba(45,212,191,.25);
+  background-image:url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 6L5 8.5L9.5 3.5' stroke='%232DD4BF' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:center}
+.p-list li.off{opacity:.35}
+.p-list li.off::before{background-image:none;background-color:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08)}
+.p-btn{display:block;width:100%;padding:13px;border-radius:12px;text-align:center;text-decoration:none;
+  font-family:"Outfit";font-size:.88rem;font-weight:600;cursor:pointer;transition:.2s;border:none}
+.p-btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--text2)}
+.p-btn-ghost:hover{border-color:var(--blue);color:var(--blue);background:rgba(91,156,245,.06)}
+.p-btn-fill{background:linear-gradient(135deg,var(--blue),var(--violet));color:#fff;box-shadow:0 4px 16px rgba(91,156,245,.35)}
+.p-btn-fill:hover{box-shadow:0 8px 28px rgba(91,156,245,.5)}
+
+/* ── CTA ── */
+.cta{position:relative;z-index:1;padding:60px 24px 140px}
+.cta-box{max-width:760px;margin:0 auto;text-align:center;position:relative;
+  background:var(--glass);backdrop-filter:blur(16px);
+  border:1px solid rgba(91,156,245,.2);border-radius:28px;padding:72px 48px;overflow:hidden}
+.cta-glow1{position:absolute;width:240px;height:240px;border-radius:50%;top:-80px;right:-60px;
+  background:radial-gradient(circle,rgba(159,122,234,.2) 0%,transparent 70%);pointer-events:none}
+.cta-glow2{position:absolute;width:240px;height:240px;border-radius:50%;bottom:-80px;left:-60px;
+  background:radial-gradient(circle,rgba(91,156,245,.18) 0%,transparent 70%);pointer-events:none}
+.cta-box h2{font-family:"Unbounded";font-size:clamp(1.5rem,3vw,2.4rem);font-weight:800;letter-spacing:-.03em;line-height:1.12;margin-bottom:14px;position:relative}
+.cta-box p{font-size:1rem;color:var(--text2);margin-bottom:32px;line-height:1.7;position:relative}
+
+/* ── FOOTER ── */
+footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:28px 40px;
+  display:flex;align-items:center;justify-content:space-between}
+.f-logo{display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--text2);font-family:"Unbounded";font-size:.75rem;font-weight:600}
+.f-mark{width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,var(--blue),var(--violet));
+  display:flex;align-items:center;justify-content:center}
+.f-mark svg{width:11px;height:11px}
+.f-copy{font-size:.74rem;color:var(--text3)}
+
+/* ── REVEAL ── */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1)}
+.reveal.vis{opacity:1;transform:translateY(0)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:860px){
+  .bento{grid-template-columns:1fr}.bc-1,.bc-2,.bc-3,.bc-4{grid-column:1/-1}
+  .pricing-grid,.steps{grid-template-columns:1fr}
+  .p-card.pop{transform:none}.p-card.pop:hover{transform:translateY(-4px)}
+  .hero-mockup{transform:none}
+  nav{width:calc(100% - 24px);padding:0 6px 0 16px}
+  footer{flex-direction:column;gap:10px;text-align:center;padding:24px}
+}
+</style>
+</head>
+<body>
+
+<!-- PRELOADER -->
+<div class="preloader" id="preloader">
+  <div class="pre-scene">
+    <!-- VK Post card -->
+    <div class="pre-post" id="pre-post">
+      <div class="pre-post-head">
+        <div class="pre-avatar"></div>
+        <div><div class="pre-name">Сообщество ВК</div><div class="pre-time">только что</div></div>
+      </div>
+      <div class="pre-post-text">Ищу специалиста для проекта, кто может помочь?</div>
+      <div class="pre-comment-row" id="pre-comment">
+        <div class="pre-comment-avatar"></div>
+        <div class="pre-comment-bubble">
+          <span class="pre-typing" id="pre-typing"></span>
+          <span class="pre-cursor">|</span>
+        </div>
+      </div>
+    </div>
+    <!-- Notification explosion -->
+    <div class="pre-notifs" id="pre-notifs"></div>
+    <!-- Logo reveal -->
+    <div class="pre-logo" id="pre-logo">
+      <div class="pre-logo-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" width="22" height="22"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+    </div>
+  </div>
+</div>
+
+<div class="cursor-glow" id="cg"></div>
+<div class="mesh"><div class="mesh-blob"></div><div class="mesh-blob"></div><div class="mesh-blob"></div><div class="mesh-blob"></div></div>
+<div class="dot-grid"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">
+    <div class="nav-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+    VK Comment Assistant
+  </a>
+  <div class="nav-right">
+    <a href="#pricing" class="nav-link">Тарифы</a>
+    <a href="/app" class="nav-cta">Войти</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <h1>Автоматизируй<br>продвижение<br><span class="grad">во ВКонтакте</span></h1>
+  <p class="hero-sub">AI-ассистент для массовых комментариев, мониторинга горячей аудитории и автопилотных рассылок</p>
+  <div class="hero-btns">
+    <a href="/app" class="btn-primary-lg">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12.785 16.241s.288-.032.436-.194c.136-.148.132-.427.132-.427s-.019-1.304.585-1.496c.595-.189 1.361 1.26 2.174 1.815.614.422 1.08.33 1.08.33l2.168-.03s1.134-.07.596-.961c-.044-.073-.314-.661-1.615-1.868-1.36-1.26-1.178-1.056.46-3.234.999-1.329 1.398-2.141 1.273-2.488-.12-.332-.855-.244-.855-.244l-2.44.015s-.181-.025-.315.056c-.131.079-.215.262-.215.262s-.387 1.03-.903 1.907c-1.088 1.847-1.524 1.946-1.701 1.832-.414-.267-.311-1.073-.311-1.646 0-1.79.271-2.535-.528-2.726-.265-.064-.46-.106-1.138-.113-.87-.009-1.605.003-2.022.207-.277.135-.491.437-.361.454.161.022.527.099.721.363.25.341.241 1.107.241 1.107s.144 2.109-.335 2.372c-.328.18-.778-.188-1.744-1.866-.495-.859-.869-1.81-.869-1.81s-.072-.176-.201-.271c-.156-.114-.374-.15-.374-.15l-2.319.015s-.348.01-.476.161C3.52 8.48 3.62 8.79 3.62 8.79s1.816 4.25 3.875 6.395c1.887 1.97 4.03 1.84 4.03 1.84l1.26-.017z"/></svg>
+      Начать бесплатно
+    </a>
+    <a href="#features" class="btn-secondary-lg">Возможности ↓</a>
+  </div>
+
+  <div class="hero-mockup-wrap">
+    <div class="hero-mockup">
+      <div class="mockup-bar"><div class="mc mc-r"></div><div class="mc mc-y"></div><div class="mc mc-g"></div><div class="mockup-url">vk-assistant.app — Панель управления</div></div>
+      <img src="/static/screenshots/screen_publish.png" alt="VK Comment Assistant"/>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-section">
+  <div class="marquee-track" id="marquee">
+    <span class="marquee-item"><span class="marquee-dot"></span>Массовые комментарии</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Мониторинг ключевых слов</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Автопилот 24/7</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>AI генерация изображений</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Личные сообщения</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Поиск горячей аудитории</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>NanoBanana · GPT-Image</span>
+    <span class="marquee-item"><span class="marquee-dot"></span>Без ограничений</span>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="section-head">
+    <div class="section-label">Возможности</div>
+    <h2 class="section-title">Четыре инструмента<br><span class="grad">в одном кабинете</span></h2>
+    <p class="section-sub">От публикации комментариев до AI-генерации уникальных изображений — всё работает вместе</p>
+  </div>
+  <div class="bento">
+    <div class="bento-card bc-1 reveal">
+      <div class="bc-body"><div class="bc-num">01</div><div class="bc-icon bc-i1">📝</div><div class="bc-tag">Публикация</div><div class="bc-title">Массовые комментарии</div><div class="bc-desc">Один текст — публикация во все сообщества разом. Фото, очередь модерации, статус каждого поста.</div></div>
+      <div class="bc-screenshot"><img src="/static/screenshots/screen_publish.png" alt="Публикация"/></div>
+    </div>
+    <div class="bento-card bc-2 reveal" style="transition-delay:.08s">
+      <div class="bc-body"><div class="bc-num">02</div><div class="bc-icon bc-i2">🔍</div><div class="bc-tag">Мониторинг</div><div class="bc-title">Горячая аудитория</div><div class="bc-desc">Поиск постов и комментариев по ключевым словам. Автоматические ЛС авторам.</div></div>
+      <div class="bc-screenshot"><img src="/static/screenshots/screen_monitor.png" alt="Мониторинг"/></div>
+    </div>
+    <div class="bento-card bc-3 reveal" style="transition-delay:.16s">
+      <div class="bc-body"><div class="bc-num">03</div><div class="bc-icon bc-i3">🤖</div><div class="bc-tag">Автопилот</div><div class="bc-title">Работает без тебя</div><div class="bc-desc">Задай расписание — бот сам найдёт людей и напишет.</div></div>
+      <div class="bc-screenshot"><img src="/static/screenshots/screen_autopilot.png" alt="Автопилот"/></div>
+    </div>
+    <div class="bento-card bc-4 reveal" style="transition-delay:.24s">
+      <div class="bc-body"><div class="bc-num">04</div><div class="bc-icon bc-i4">✨</div><div class="bc-tag">AI Генерация</div><div class="bc-title">Уникальные изображения</div><div class="bc-desc">Трансформируй фото из постов через NanoBanana или GPT-Image. Уникальный визуал за секунды.</div></div>
+      <div class="bc-ai-vis"><div class="orbs"><div class="orb"></div><div class="orb"></div><div class="orb"></div></div><div class="orb-label">NanoBanana · GPT-Image · Image-to-Image</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section class="how">
+  <div class="how-inner">
+    <div class="section-head">
+      <div class="section-label">Как начать</div>
+      <h2 class="section-title">Три шага <span class="grad">до результата</span></h2>
+    </div>
+    <div class="steps">
+      <div class="step-card reveal"><div class="step-ring">01</div><div class="step-h">Войди через VK</div><div class="step-p">Безопасная авторизация через ВКонтакте. Личный кабинет создаётся мгновенно.</div></div>
+      <div class="step-card reveal" style="transition-delay:.08s"><div class="step-ring">02</div><div class="step-h">Добавь сообщества</div><div class="step-p">Вставь ссылку или найди через поиск. Все данные — в твоём личном пространстве.</div></div>
+      <div class="step-card reveal" style="transition-delay:.16s"><div class="step-ring">03</div><div class="step-h">Запусти автоматизацию</div><div class="step-p">Настрой автопилот и наблюдай, как система работает на тебя.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="section-head">
+    <div class="section-label">Тарифы</div>
+    <h2 class="section-title">Прозрачные цены<br><span class="grad">без скрытых платежей</span></h2>
+    <p class="section-sub">Начни бесплатно, масштабируй по мере роста</p>
+  </div>
+  <div class="pricing-grid">
+    <div class="p-card reveal">
+      <div class="p-name">Старт</div><div class="p-desc">Для первых шагов</div>
+      <div class="p-price">500<span class="p-cur">₽</span></div><div class="p-period">в месяц</div>
+      <ul class="p-list"><li>7 сообществ</li><li>Публикация комментариев</li><li>Мониторинг по ключам</li><li>Ручные рассылки в ЛС</li><li class="off">Автопилот 24/7</li><li class="off">AI генерация</li></ul>
+      <a href="/app" class="p-btn p-btn-ghost">Начать</a>
+    </div>
+    <div class="p-card pop reveal" style="transition-delay:.08s">
+      <div class="pop-tag">Популярный</div>
+      <div class="p-name">Про</div><div class="p-desc">Для активного продвижения</div>
+      <div class="p-price hi">1 490<span class="p-cur">₽</span></div><div class="p-period">в месяц</div>
+      <ul class="p-list"><li>25 сообществ</li><li>Публикация комментариев</li><li>Мониторинг по ключам</li><li>Автопилот 24/7</li><li>AI генерация (NanoBanana)</li><li>GPT-Image трансформации</li></ul>
+      <a href="/app" class="p-btn p-btn-fill">Начать</a>
+    </div>
+    <div class="p-card reveal" style="transition-delay:.16s">
+      <div class="p-name">Команда</div><div class="p-desc">Без ограничений</div>
+      <div class="p-price">3 990<span class="p-cur">₽</span></div><div class="p-period">в месяц</div>
+      <ul class="p-list"><li>Безлимит сообществ</li><li>Всё из тарифа Про</li><li>Приоритетная поддержка</li><li>API доступ</li><li>Командные аккаунты</li><li>Персональный онбординг</li></ul>
+      <a href="/app" class="p-btn p-btn-ghost">Начать</a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="cta-box">
+    <div class="cta-glow1"></div><div class="cta-glow2"></div>
+    <h2>Готов автоматизировать<br><span class="grad">продвижение?</span></h2>
+    <p>Войди через VK и начни прямо сейчас.<br>Первый месяц — на тарифе Старт в подарок.</p>
+    <a href="/app" class="btn-primary-lg" style="display:inline-flex">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12.785 16.241s.288-.032.436-.194c.136-.148.132-.427.132-.427s-.019-1.304.585-1.496c.595-.189 1.361 1.26 2.174 1.815.614.422 1.08.33 1.08.33l2.168-.03s1.134-.07.596-.961c-.044-.073-.314-.661-1.615-1.868-1.36-1.26-1.178-1.056.46-3.234.999-1.329 1.398-2.141 1.273-2.488-.12-.332-.855-.244-.855-.244l-2.44.015s-.181-.025-.315.056c-.131.079-.215.262-.215.262s-.387 1.03-.903 1.907c-1.088 1.847-1.524 1.946-1.701 1.832-.414-.267-.311-1.073-.311-1.646 0-1.79.271-2.535-.528-2.726-.265-.064-.46-.106-1.138-.113-.87-.009-1.605.003-2.022.207-.277.135-.491.437-.361.454.161.022.527.099.721.363.25.341.241 1.107.241 1.107s.144 2.109-.335 2.372c-.328.18-.778-.188-1.744-1.866-.495-.859-.869-1.81-.869-1.81s-.072-.176-.201-.271c-.156-.114-.374-.15-.374-.15l-2.319.015s-.348.01-.476.161C3.52 8.48 3.62 8.79 3.62 8.79s1.816 4.25 3.875 6.395c1.887 1.97 4.03 1.84 4.03 1.84l1.26-.017z"/></svg>
+      Войти через ВКонтакте
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <a href="/" class="f-logo"><div class="f-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>VK Comment Assistant</a>
+  <div class="f-copy">© 2026 VK Comment Assistant · Создано при поддержке ContentPlus и Gleb Bugaev</div>
+</footer>
+
+<script>
+// ── PRELOADER ──
+(function(){
+  const text = "Здравствуйте! Могу помочь с вашим проектом — напишите в ЛС";
+  const typing = document.getElementById('pre-typing');
+  const notifsEl = document.getElementById('pre-notifs');
+  const preloader = document.getElementById('preloader');
+  const logo = document.getElementById('pre-logo');
+  let i = 0;
+
+  // Type text
+  function typeChar(){
+    if(i < text.length){
+      typing.textContent += text[i]; i++;
+      setTimeout(typeChar, 25 + Math.random()*30);
+    } else {
+      setTimeout(sendComment, 400);
+    }
+  }
+  setTimeout(typeChar, 1200);
+
+  // Send → shrink bubble → explode notifs
+  function sendComment(){
+    const post = document.getElementById('pre-post');
+    post.style.transition = 'transform .3s ease, opacity .3s ease';
+    post.style.transform = 'scale(.92)';
+    post.style.opacity = '.6';
+    setTimeout(()=>{ post.style.transform = 'scale(.85)'; post.style.opacity = '0'; }, 200);
+    setTimeout(spawnNotifs, 400);
+  }
+
+  const messages = [
+    {t:'Комментарий отправлен ✓', c:'green'},
+    {t:'Новое уведомление', c:''},
+    {t:'Ответ на комментарий', c:'violet'},
+    {t:'Сообщение доставлено', c:'green'},
+    {t:'+1 комментарий', c:''},
+    {t:'Новая заявка', c:'amber'},
+    {t:'Пост 14 → #16 ✓', c:'green'},
+    {t:'ЛС отправлено', c:'green'},
+    {t:'Автопилот: найдено 5', c:'violet'},
+    {t:'Комментарий #17 ✓', c:'green'},
+    {t:'Новый лид из VK', c:'amber'},
+    {t:'AI: изображение готово', c:'violet'},
+    {t:'Рассылка завершена', c:'green'},
+    {t:'+3 ответа', c:''},
+    {t:'Мониторинг: 12 совпадений', c:''},
+    {t:'Пост опубликован', c:'green'},
+  ];
+
+  const bellSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>';
+  const checkSvg = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>';
+
+  function spawnNotifs(){
+    for(let n=0;n<messages.length;n++){
+      const m = messages[n];
+      const el = document.createElement('div');
+      el.className = 'pre-notif' + (m.c ? ' '+m.c : '');
+      el.innerHTML = (m.c==='green'?checkSvg:bellSvg) + ' ' + m.t;
+
+      // Random directions — full circle
+      const angle = (Math.PI*2 / messages.length) * n + (Math.random()-.5)*.4;
+      const dist = 140 + Math.random()*180;
+      const tx = Math.cos(angle)*dist;
+      const ty = Math.sin(angle)*dist;
+      el.style.setProperty('--tx', tx+'px');
+      el.style.setProperty('--ty', ty+'px');
+      el.style.animation = 'none';
+      el.style.animationDelay = (n*0.06)+'s';
+
+      notifsEl.appendChild(el);
+
+      // Custom keyframe per notification
+      setTimeout(()=>{
+        el.style.animation = `notifFlyTo 1.4s cubic-bezier(.16,1,.3,1) forwards`;
+        el.style.animationDelay = (n*0.06)+'s';
+      },10);
+    }
+    // Show logo
+    setTimeout(()=>{ logo.classList.add('show'); }, 600);
+    // Fade out preloader
+    setTimeout(()=>{ preloader.classList.add('done'); }, 2200);
+    // Remove from DOM
+    setTimeout(()=>{ preloader.remove(); }, 2800);
+  }
+})();
+
+// Cursor glow
+const cg=document.getElementById('cg');
+document.addEventListener('mousemove',e=>{cg.style.left=e.clientX+'px';cg.style.top=e.clientY+'px'});
+
+// Scroll reveal
+const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('vis')})},{threshold:.08,rootMargin:'0px 0px -30px 0px'});
+document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+
+// Marquee duplicate
+const mt=document.getElementById('marquee');
+mt.innerHTML+=mt.innerHTML;
+
+// Smooth anchors
+document.querySelectorAll('a[href^="#"]').forEach(a=>{a.addEventListener('click',e=>{const t=document.querySelector(a.getAttribute('href'));if(t){e.preventDefault();t.scrollIntoView({behavior:'smooth'})}})});
+</script>
+</body>
+</html>
